@@ -1,0 +1,23 @@
+name pptpd
+# in fact, pap should not be used with require-mppe
+# require-pap
+chap-secrets-file {{vpnservice.chap_secrets}}
+require-chap
+require-mschap
+require-mschap-v2
+# apple phone need mppe
+require-mppe
+proxyarp
+lock
+nobsdcomp
+novj
+novjccomp
+# to debug use
+# dump
+# logfile
+nologfd
+idle 2592000
+debug
+ms-dns 114.114.114.114
+ms-dns 8.8.8.8
+

@@ -1,0 +1,48 @@
+# listen ip
+{% if openvpn_service.ex_gw_ip %}
+local     {{ openvpn_service.ex_gw_ip }}
+{% endif %}
+# listen port
+{% if openvpn_service.port %}
+port {{ openvpn_service.port }}
+{% else %}
+port 1194
+{% endif %}
+#protocol
+{% if openvpn_service.protocol %}
+proto {{ openvpn_service.protocol }}
+{% else %}
+proto udp
+{% endif %}
+#mode
+{% if openvpn_service.mode %}
+dev {{ openvpn_service.mode }}
+{% if openvpn_service.mode == 'tun' %}
+server {{ openvpn_service.addr }}  {{ openvpn_service.netmask }}
+{% endif %}
+{% else %}
+dev tun
+server {{ openvpn_service.addr}}  {{ openvpn_service.netmask }}
+{% endif %}
+#certificate
+ca  {{ defaults.ca_file }}
+dh  {{ defaults.server_dh }}
+cert {{ openvpn_service.server_ca }}
+key {{ openvpn_service.server_key }}
+tls-auth  {{ openvpn_service.ta_key}} 0
+#route of client
+{% for subnet in openvpn_service.subnets %}
+push route  {{ subnet.addr }}  {{ subnet.netmask }}
+{% endfor %}
+cipher {{ defaults.aes_256_cbc }}
+max-clients {{ defaults.max_client }}
+{% if defaults.client_to_client == 'True' %}
+client-to-client
+{% endif %}
+keepalive {{ defaults.heatbeat_interval }}  {{ defaults.reconnection_time }}
+comp-lzo
+persist-key
+persist-tun
+verb 　   {{ defaults.log_level }}
+duplicate-cn
+mute 20

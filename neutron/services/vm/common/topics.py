@@ -1,0 +1,2 @@
+SVMDEVICE_DRIVER_TOPIC='svm_device_driver'
+SERVICEVM_DRIVER_TOPIC='servicevm_driver'

@@ -1,0 +1,6 @@
+option {{vpnservice.pppoptionsfile}}
+pidfile {{vpnservice.pidfile}}
+logwtmp
+localip {{vpnservice._cidr.firstaddr}}
+remoteip {{vpnservice._cidr.otheraddr}}
+

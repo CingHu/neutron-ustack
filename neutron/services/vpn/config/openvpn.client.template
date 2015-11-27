@@ -1,0 +1,107 @@
+[windows conf]
+# add options to be added to the configuration file here
+# it doesn't really matter what the variable's name is :)
+dev = 'dev tun'
+ip = 'remote 12.34.56.78'
+# uncomment the next 3 lines to add redundant routers:
+# remote-random
+resolv-retry = 'resolv-retry infinite'
+# ip2 = 'remote 23.45.67.89'
+port = 'port 1194'
+mssfix = 'mssfix 1300'
+client = 'client'
+# actually for the next 3 vars, the name _does_ matter since
+# we'll do some string replace stuff (to get the right filename)
+ca = 'ca "c:\\Program Files\\OpenVPN\\config\\cacertfile"'
+cert = 'cert "c:\\Program Files\\OpenVPN\\config\\clientcertfile"'
+key = 'key "c:\\Program Files\\OpenVPN\\config\\clientkeyfile"'
+tls = 'tls-auth "c:\\Program Files\\OpenVPN\\config\\tlsauthfile" 1'
+lzo = 'comp-lzo'
+ping = 'ping 15'
+pingrestart = 'ping-restart 120'
+pingtimer = 'ping-timer-rem'
+persisttun = 'persist-tun'
+persistkey = 'persist-key'
+nobind='nobind'
+verb = 'verb 3'
+proto= 'proto udp'
+cipher = 'cipher AES-256-CBC'
+
+[linux conf]
+# add options to be added to the configuration file here
+daemon = 'daemon'
+dev = 'dev tun'
+ip = 'remote 12.34.56.78'
+# uncomment the next 3 lines to add redundant routers:
+# remote-random
+resolv-retry = 'resolv-retry infinite'
+# ip2 = 'remote 23.45.67.89'
+port = 'port 1194'
+mssfix = 'mssfix 1300'
+client = 'client'
+# don't touch the next 3 var names:
+ca = 'ca /etc/openvpn/cacertfile'
+cert = 'cert /etc/openvpn/clientcertfile'
+key = 'key /etc/openvpn/clientkeyfile'
+tls = 'tls-auth /etc/openvpn/tlsauthfile 1'
+lzo = 'comp-lzo'
+ping = 'ping 15'
+pingrestart = 'ping-restart 120'
+pingtimer = 'ping-timer-rem'
+persisttun = 'persist-tun'
+persistkey = 'persist-key'
+verb = 'verb 3'
+nobind='nobind'
+proto = 'proto udp'
+cipher = 'cipher AES-256-CBC'
+
+[mac conf]
+# add options to be added to the configuration file here
+daemon = 'daemon'
+dev = 'dev tun'
+ip = 'remote 12.34.56.78'
+# uncomment the next 3 lines to add redundant routers:
+# remote-random
+resolv-retry = 'resolv-retry infinite'
+# ip2 = 'remote 23.45.67.89'
+port = 'port 1194'
+mssfix = 'mssfix 1300'
+client = 'client'
+# don't touch the next 3 var names:
+ca = 'ca cacertfile'
+cert = 'cert clientcertfile'
+key = 'key clientkeyfile'
+tls = 'tls-auth tlsauthfile 1'
+lzo = 'comp-lzo'
+ping = 'ping 15'
+pingrestart = 'ping-restart 120'
+pingtimer = 'ping-timer-rem'
+persisttun = 'persist-tun'
+persistkey = 'persist-key'
+verb = 'verb 3'
+nobind='nobind'
+proto = 'proto udp'
+cipher = 'cipher AES-256-CBC'
+
+[android conf]
+# add options to be added to the configuration file here
+daemon = 'daemon'
+dev = 'dev tun'
+ip = 'remote 12.34.56.78'
+# uncomment the next 3 lines to add redundant routers:
+# remote-random
+# resolv-retry 60
+resolv-retry = 'resolv-retry infinite'
+# ip2 = 'remote 23.45.67.89'
+port = 'port 1194'
+#mssfix = 'mssfix 1300'
+client = 'client'
+lzo = 'comp-lzo'
+ping = 'ping 15'
+pingrestart = 'ping-restart 120'
+pingtimer = 'ping-timer-rem'
+persisttun = 'persist-tun'
+persistkey = 'persist-key'
+verb = 'verb 3'
+proto = 'proto udp'
+nobind='nobind'

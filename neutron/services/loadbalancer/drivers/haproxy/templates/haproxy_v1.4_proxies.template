@@ -1,0 +1,192 @@
+{# # Copyright 2014 Openstack Foundation
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+#
+#}
+{% extends 'haproxy_base.template' %}
+
+{% macro frontend_macro(constants, listener, lb_vip_address) %}
+frontend {{ listener.id }}
+    option tcplog
+{% if not listener.admin_state_up %}
+    disabled
+{% endif %}
+{% if listener.connection_limit is defined %}
+    maxconn {{ listener.connection_limit }}
+{% endif %}
+{% if listener.protocol == constants.PROTOCOL_HTTP.lower() %}
+    option forwardfor
+{% if listener.keep_alive %}
+{% else %}
+    option httpclose
+{% endif %}
+{% endif %}
+{% if listener.protocol != constants.PROTOCOL_TERMINATED_HTTPS.lower() %}
+    bind {{ lb_vip_address }}:{{ listener.protocol_port }}
+    mode {{ listener.protocol }}
+{% endif %}
+{% if listener.protocol == constants.PROTOCOL_TERMINATED_HTTPS.lower() %}
+    option forwardfor
+    bind {{ lb_vip_address }}:{{ listener.protocol_port }} ssl crt {{listener.default_tls_container_id}}.pem .
+    mode http
+{% if listener.keep_alive %}
+{% else %}
+    option httpclose
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro l7policies_macro(constants, listener, l7_policies) %}
+{% for l7policy in l7_policies %}
+{% if l7policy.rules is defined %}
+{{l7rules_macro(constants, l7policy, l7policy.rules)}}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro l7policies_pool_macro(constants, listener, l7_policies) %}
+{% for l7policy in l7_policies %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_POOL %}
+{% if l7policy.pool is defined %}
+{{backend_macro(constants,listener,l7policy.pool)}}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro l7rules_macro(constants, l7policy, l7_rules) %}
+{% for rule in l7_rules %}
+{% if l7policy.redirect_url_drop_query %}
+{% set drop_opt = "drop-query" %}
+{% else %}
+{% set drop_opt = " " %}
+{% endif %}
+{% if rule.type == constants.L7_RULE_TYPE_HOST_NAME %}
+{% if rule.compare_type == constants.L7_RULE_COMPARE_TYPE_REGEX %}
+    {{ "acl %s hdr_reg(Host) -m reg %s"|e|format(rule.id, rule.key)}}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_URL %}
+    {{ "redirect prefix %s %s if %s"|e|format(l7policy.redirect_url,drop_opt,rule.id)}}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_POOL %}
+{% if l7policy.pool is defined %}
+    {{ "use_backend %s if %s " |e|format(l7policy.redirect_pool_id,rule.id)}}
+{% endif %}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REJECT %}
+    {{ "http-request deny if %s "|e|format(rule.id)}}
+{% endif %}
+{% endif %}
+{% if rule.compare_type == constants.L7_RULE_COMPARE_TYPE_EQUALS_TO %}
+    {{ "acl %s hdr_reg(Host) %s"|e|format(rule.id, rule.key)}}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_URL %}
+    {{ "redirect prefix %s %s if %s"|e|format(l7policy.redirect_url,drop_opt,rule.id)}}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_POOL %}
+{% if l7policy.pool is defined %}
+    {{ "use_backend %s if %s "|e|format(l7policy.redirect_pool_id,rule.id)}}
+{% endif %}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REJECT %}
+    {{ "http-request deny if %s "|e|format(rule.id)}}
+{% endif %}
+{% endif %}
+{% endif %}
+{% if rule.type == constants.L7_RULE_TYPE_PATH %}
+{% if rule.compare_type == constants.L7_RULE_COMPARE_TYPE_REGEX %}
+    {{ "acl %s path_reg %s"|e|format(rule.id, rule.key)}}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_URL %}
+    {{ "redirect prefix %s %s if %s"|e|format(l7policy.redirect_url,drop_opt,rule.id)}}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_POOL %}
+{% if l7policy.pool is defined %}
+    {{ "use_backend %s if %s "|e|format(l7policy.redirect_pool_id,rule.id)}}
+{% endif %}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REJECT %}
+    {{ "http-request deny if %s "|e|format(rule.id)}}
+{% endif %}
+{% endif %}
+{% if rule.compare_type == constants.L7_RULE_COMPARE_TYPE_EQUALS_TO %}
+    {{ "acl %s path %s"|e|format(rule.id, rule.key)}}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_URL %}
+    {{ "redirect prefix %s %s if %s"|e|format(l7policy.redirect_url,drop_opt,rule.id)}}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REDIRECT_TO_POOL %}
+{% if l7policy.pool is defined %}
+    {{ "use_backend %s if %s "|e|format(l7policy.redirect_pool_id,rule.id)}}
+{% endif %}
+{% endif %}
+{% if l7policy.action == constants.L7_POLICY_ACTION_REJECT %}
+    {{ "http-request deny if %s "|e|format(rule.id)}}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro backend_macro(constants, listener, pool) %}
+backend {{ pool.id }}
+    mode {{ pool.protocol }}
+    balance {{ pool.lb_algorithm }}
+{% if not pool.admin_state_up %}
+    disabled
+{% endif %}
+{% if pool.session_persistence %}
+{% if pool.session_persistence.type == constants.SESSION_PERSISTENCE_SOURCE_IP %}
+    stick-table type ip size 10m
+    stick on src
+{% elif pool.session_persistence.type == constants.SESSION_PERSISTENCE_HTTP_COOKIE %}
+    cookie SRV insert indirect nocache
+{% elif pool.session_persistence.type == constants.SESSION_PERSISTENCE_APP_COOKIE and pool.session_persistence.cookie_name %}
+    appsession {{ pool.session_persistence.cookie_name }} len 56 timeout 3h
+{% endif %}
+{% endif %}
+{% if pool.health_monitor %}
+    timeout check {{ pool.health_monitor.timeout }}
+{% if pool.health_monitor.type == constants.HEALTH_MONITOR_HTTP or pool.health_monitor.type == constants.HEALTH_MONITOR_HTTPS %}
+    option httpchk {{ pool.health_monitor.http_method }} {{ pool.health_monitor.url_path }}
+    http-check expect rstatus {{ pool.health_monitor.expected_codes }}
+{% endif %}
+{% if pool.health_monitor.type == constants.HEALTH_MONITOR_HTTPS %}
+    option ssl-hello-chk
+{% endif %}
+{% endif %}
+{% if listener.protocol == constants.PROTOCOL_HTTP.lower() %}
+    option forwardfor
+{% if listener.keep_alive %}
+{% else %}
+    option httpclose
+{% endif %}
+{% endif %}
+{% for member in pool.members %}
+{% if not member.admin_state_up %}
+{% endif %}
+{% if pool.health_monitor %}
+{% set hm_opt = " check inter %ds fall %d"|format(pool.health_monitor.delay, pool.health_monitor.max_retries) %}
+{% else %}
+{% set hm_opt = "" %}
+{% endif %}
+{%if pool.session_persistence.type == constants.SESSION_PERSISTENCE_HTTP_COOKIE %}
+{% set persistence_opt = " cookie %s"|format(member.id) %}
+{% else %}
+{% set persistence_opt = "" %}
+{% endif %}
+{% if member.admin_state_up %}
+    {{ "server %s %s:%d weight %s%s%s"|e|format(member.id, member.address, member.protocol_port, member.weight, hm_opt, persistence_opt)|trim() }}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro use_default_backend_macro(constants, listener, pool) %}
+    default_backend {{ pool.id }}
+{% endmacro %}
